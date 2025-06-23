@@ -14,10 +14,18 @@ export default function App() {
 
     const fetchData = () => {
         setLoading(true)
+
         axios.get(`${baseUrl}/scrap/${alias}`)
             .then(response => {
-                setLoading(false)
                 setData(response.data)
+
+                if (response.data.status === "ONGOING") {
+                    setTimeout(() => {
+                        fetchData()
+                    }, 5000)
+                } else {
+                    setLoading(false)
+                }
             })
     }
 
@@ -27,19 +35,36 @@ export default function App() {
     }
 
     if (data) {
+        const count = data ? data.articles.length : 0
+        let progress = <></>
+        if (data) {
+            if (data.status === "ONGOING") {
+                progress = <div ><h5 className="loader-heading">Loading... {count} articles fetched</h5></div>
+            } else {
+                progress = <div><h5>Done loading, {count} articles fetched</h5></div>
+            }
+        }
+
         return (
             <>
-                <button style={{
+                <div style={{
                     position: "absolute",
                     top: "5px",
                     right: "5px",
-                    color: "#506c2d",
-                    background: "#fff",
-                    border: "1px solid #506c2d"
-                }} onClick={reset}>Load stats for some other
-                    writer
-                </button>
-                <Stats data={data}/>
+
+                }}>
+                    <button style={{
+                        color: "#506c2d",
+                        background: "#fff",
+                        border: "1px solid #506c2d"
+                    }}
+                            onClick={reset}>Load stats for some other writer
+                    </button>
+                    <div>
+                        {progress}
+                    </div>
+                </div>
+                <Stats data={data} alias={alias} />
             </>
         )
     } else if (loading) {

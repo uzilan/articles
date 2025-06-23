@@ -48,7 +48,6 @@ export default function Stories(props: Props) {
                                             height={100}
                                             style={{width: "100%", aspectRatio: "1 / 1", objectFit: "cover"}}
                                         />
-                                        <p style={{marginBottom: "20px", marginTop: "0", fontSize: "14px"}}>{image.title}</p>
                                     </a>
                                 ))}
                             </div>

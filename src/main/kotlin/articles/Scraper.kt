@@ -7,19 +7,32 @@ import com.microsoft.playwright.ElementHandle
 import com.microsoft.playwright.Page
 import com.microsoft.playwright.Playwright
 import com.microsoft.playwright.options.LoadState
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.time.LocalDate
 import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
+
+private const val USER_AGENT =
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
 
 object Scraper {
+
+    private val logger: Logger = LoggerFactory.getLogger(Scraper::class.java)
 
     private val cache = Caffeine.newBuilder()
         .expireAfterWrite(1, TimeUnit.DAYS)
         .maximumSize(1000)
         .build<String, Data>()
 
-    fun scrap(url: String): Data = cache.get(url) { articles(url) }
+    private val parsedLinks = mutableMapOf<String, List<ElementHandle>>()
 
-    private fun articles(url: String): Data {
+    fun fetch(alias: String): Data {
+        return cache.getIfPresent(alias) ?: helper(alias)
+    }
+
+    private fun helper(alias: String): Data {
+        val url = "https://medium.com/$alias"
         val playwright = Playwright.create()
 
         val browser = playwright.chromium().launch(
@@ -29,31 +42,54 @@ object Scraper {
         val context = browser.newContext(
             Browser.NewContextOptions()
                 .setViewportSize(1280, 800)
-                .setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36")
+                .setUserAgent(USER_AGENT)
         )
         val page = context.newPage()
-        page.onConsoleMessage { msg -> println("[Console] ${msg.text()}") }
-        page.onRequestFailed { req -> println("[Request Failed] ${req.url()}") }
-        page.onResponse { res -> println("[Response] ${res.status()} ${res.url()}") }
+        page.onConsoleMessage { msg -> logger.info("[Console] ${msg.text()}") }
+        page.onRequestFailed { req -> logger.error("[Request Failed] ${req.url()}") }
+        page.onResponse { res -> logger.info("[Response] ${res.status()} ${res.url()}") }
         page.navigate(url)
 
         page.waitForLoadState(LoadState.DOMCONTENTLOADED)
 
-        scrollToBottom(page)
-
-        val links = page
-            .querySelectorAll("a > h2")
-            .mapNotNull { h2 ->
-                h2.evaluateHandle("node => node.parentElement") as? ElementHandle
-            }
-
         val name = page.querySelectorAll("span")[5].innerText()
         val followers = page.querySelectorAll("span")[6].innerText()
         val description = page.querySelectorAll("p > span").last().innerText()
-        val articles = links.map { parseItem(it) }
-        browser.close()
+        val articles = articles(alias, page)
 
-        return Data(name, followers, description, articles)
+        val data = Data(name, followers, description, articles, Status.ONGOING)
+            .also { cache.put(alias, it) }
+
+        thread {
+            scrollToBottom(page, alias)
+            val completeData = cache.getIfPresent(alias) ?: throw IllegalStateException("$alias does not exist")
+            cache.put(alias, completeData.copy(status = Status.FINISHED))
+            browser.close()
+        }
+
+        return data
+    }
+
+    private fun articles(alias: String, page: Page): List<Article> {
+        val links = page.querySelectorAll("a > h2")
+            .mapNotNull { h2 ->
+                h2.evaluateHandle("node => node.parentElement") as? ElementHandle
+            }
+        val oldLinks = parsedLinks.getOrDefault(alias, emptyList())
+        val linkTexts = oldLinks.map { it.innerText() }
+        val newLinks = links.filter { link ->
+            link.innerText() !in linkTexts
+        }
+        parsedLinks[alias] = links
+
+        return newLinks.mapNotNull {
+            try {
+                parseItem(it)
+            } catch (e: Exception) {
+                logger.error("Error parsing article $it", e)
+                null
+            }
+        }
     }
 
     private fun parseItem(handle: ElementHandle): Article {
@@ -103,7 +139,7 @@ object Scraper {
         else claps.toInt()
     }
 
-    fun scrollToBottom(page: Page, maxAttempts: Int = 30, delayMs: Int = 2000) {
+    fun scrollToBottom(page: Page, alias: String, maxAttempts: Int = 100, delayMs: Int = 2000) {
         var previousHeight = -1
         var attempts = 0
 
@@ -118,7 +154,11 @@ object Scraper {
             Thread.sleep(delayMs.toLong())
             previousHeight = currentHeight
             attempts++
+
+            val articles = articles(alias, page)
+            cache.getIfPresent(alias)?.let { data ->
+                cache.put(alias, data.copy(articles = data.articles + articles))
+            } ?: throw IllegalStateException("$alias does not exist")
         }
     }
-
 }

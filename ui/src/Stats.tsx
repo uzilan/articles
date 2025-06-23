@@ -8,12 +8,14 @@ import type Data from "./models/Data.ts";
 
 interface Props {
     data: Data
+    alias: string
 }
 
 export default function Stats(props: Props) {
     return (
         <>
             <h1>{props.data.name}</h1>
+            <h2 style={{marginTop:-20}}>{props.alias}</h2>
             <div><strong>{props.data.followers}</strong></div>
             <div style={{width: '100%', textAlign: 'center'}}>
                 <p style={{width: "450px", margin: '0 auto'}}>{props.data.description}</p>

@@ -22,8 +22,9 @@ object Main {
         }
             .get("/scrap/{alias}") { ctx ->
                 val alias = ctx.pathParam("alias")
-                val aliasWithAt = if (alias.startsWith("@")) alias else "@$alias"
-                val scrap = Scraper.scrap("https://medium.com/$aliasWithAt")
+                val aliasWithAt1 = if (alias.startsWith("@")) alias else "@$alias"
+                val aliasWithAt = aliasWithAt1
+                val scrap = Scraper.fetch(aliasWithAt)
                 ctx.json(scrap)
             }
             .start(7070)

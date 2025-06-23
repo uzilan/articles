@@ -34,36 +34,20 @@ export default function Timeline(props: Props) {
             return acc;
         }, {})
 
-    const MONTH_ORDER = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-    const monthCounts = sorted.reduce<Record<string, number>>((acc, article) => {
-        const month = publishedDate(article.published).monthShort ?? "";
-        acc[month] = (acc[month] || 0) + 1;
-        return acc;
-    }, {});
-
-    const sortedMonthCounts = MONTH_ORDER
-        .filter(month => month in monthCounts)
-        .map(month => ({month, count: monthCounts[month]}));
-
     return (
         <>
             <h2 style={{margin: '2rem'}}>Timeline</h2>
 
             <table style={{width: '100%'}}>
                 <tbody>
-                <tr>
+                <tr style={{width: '100%', textAlign: 'center'}}>
                     <td>
-                        <h3>Stories per year: {avg(Object.values(years))}</h3>
-                    </td>
-                    <td>
-                        <h3>Stories per month: {avg(sortedMonthCounts.map(m => m.count))}</h3>
+                        <h3>Stories per year (average: {avg(Object.values(years))})</h3>
                     </td>
                 </tr>
-                <tr>
-                    <td>
-                        <BarChart width={500} height={200} data={Object.entries(years).map(d => ({
+                <tr style={{width: '100%', textAlign: 'center'}}>
+                    <td style={{width: '100%', textAlign: 'center'}}>
+                        <BarChart width={1000} height={200} data={Object.entries(years).map(d => ({
                             year: d[0],
                             count: d[1]
                         }))}>
@@ -74,26 +58,14 @@ export default function Timeline(props: Props) {
                             <Bar dataKey="count" fill="#8884d8"/>
                         </BarChart>
                     </td>
-                    <td>
-                        <BarChart width={500} height={200} data={sortedMonthCounts.map(d => ({
-                            month: d.month,
-                            count: d.count
-                        }))}>
-                            <CartesianGrid strokeDasharray="3 3"/>
-                            <XAxis dataKey="month" interval={0}/>
-                            <YAxis/>
-                            <Tooltip/>
-                            <Bar dataKey="count" fill="#8884d8"/>
-                        </BarChart>
-                    </td>
                 </tr>
                 <tr>
-                    <td colSpan={2}>
-                        <h3>Stories per month and year</h3>
+                    <td>
+                        <h3>Stories per month and year (average: {avg(Object.values(groupedByMonths))})</h3>
                     </td>
                 </tr>
-                <tr style={{width:'100%', textAlign:'center'   }}>
-                    <td colSpan={2} style={{width:'100%', textAlign:'center'    }} >
+                <tr style={{width: '100%', textAlign: 'center'}}>
+                    <td style={{width: '100%', textAlign: 'center'}}>
                         <BarChart width={1000} height={250} data={data}>
                             <CartesianGrid strokeDasharray="3 3"/>
                             <XAxis dataKey="name" angle={-45}
