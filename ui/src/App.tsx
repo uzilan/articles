@@ -10,7 +10,7 @@ export default function App() {
     const [loading, setLoading] = useState<boolean>(false)
 
     // const baseUrl = "http://localhost:10000"
-    const baseUrl = "https://articles-zn4d.onrender.com:10000"
+    const baseUrl = ""
 
     const fetchData = () => {
         setLoading(true)
