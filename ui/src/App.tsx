@@ -9,8 +9,8 @@ export default function App() {
     const [alias, setAlias] = useState<string>('@')
     const [loading, setLoading] = useState<boolean>(false)
 
-    const baseUrl = "http://localhost:10000"
-    // const baseUrl = ""
+    // const baseUrl = "http://localhost:10000"
+    const baseUrl = "https://articles-zn4d.onrender.com:10000"
 
     const fetchData = () => {
         setLoading(true)
