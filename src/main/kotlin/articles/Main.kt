@@ -10,7 +10,10 @@ object Main {
     fun main(args: Array<String>) {
 
         Javalin.create { config ->
-            config.staticFiles.add("ui/dist", Location.EXTERNAL)
+            config.staticFiles.add(
+                directory = "/public",
+                location = Location.CLASSPATH,
+            )
             config.bundledPlugins.enableCors { cors ->
                 cors.addRule {
                     it.anyHost()

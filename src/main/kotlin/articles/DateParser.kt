@@ -1,13 +1,11 @@
 package articles
 
-import org.slf4j.LoggerFactory
 import java.time.LocalDate
 import java.time.LocalDate.now
 import java.time.Month
 import java.time.temporal.ChronoUnit
 
 object DateParser {
-    val logger = LoggerFactory.getLogger(DateParser::class.java)
 
     fun parseDate(date: String): LocalDate {
         return when {
@@ -16,15 +14,10 @@ object DateParser {
 
             else -> givenDate(date)
         }
-
     }
 
     private fun givenDate(date: String): LocalDate {
         val split = date.split(" ")
-
-        logger.info("date: $date")
-        logger.info("split: $split")
-
         val month = month(split[0])
         val day = split[1].dropLast(1).toInt()
         val year = split[2].toInt()
