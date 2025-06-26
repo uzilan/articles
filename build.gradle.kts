@@ -34,9 +34,10 @@ tasks.withType<ShadowJar> {
     exclude("**/ui/build/**")
     exclude("**/.cache/**")
     exclude("**/.bin/**")
-    exclude("**/driver/linux/**")
+//    exclude("**/driver/linux/**")
     exclude("**/driver/linux-arm64/**")
     exclude("**/driver/mac/**")
+    exclude("**/driver/mac-arm64/**")
     exclude("**/driver/win32_x64/**")
 
     from("ui/dist") {
