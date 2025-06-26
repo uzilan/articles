@@ -1,12 +1,5 @@
 services:
   - type: web
     name: articles
-    env: java
+    env: docker
     plan: free
-    buildCommand: ./gradlew npmInstall npm_run_build shadowJar
-    startCommand: java -jar build/libs/articles.jar
-    envVars:
-      - key: JAVA_VERSION
-        value: 23
-      - key: JDK_VERSION
-        value: 23
