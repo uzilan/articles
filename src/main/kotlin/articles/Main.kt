@@ -6,7 +6,7 @@ import io.javalin.http.staticfiles.Location
 import io.javalin.json.JavalinJackson
 
 object Main {
-    private val port = System.getenv("PORT")?.toIntOrNull() ?: 7070
+    private val port = System.getenv("PORT")?.toIntOrNull() ?: 10000
 
     @JvmStatic
     fun main(args: Array<String>) {
