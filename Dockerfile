@@ -19,7 +19,10 @@ RUN apt-get install -y libglib2.0-0t64 \
     libgbm1 \
     libxcb1 \
     libxkbcommon0 \
-    libasound2t64
+    libasound2t64 \
+    libcups2t64 \
+    libpango-1.0-0 \
+    libcairo2
 
 COPY . .
 

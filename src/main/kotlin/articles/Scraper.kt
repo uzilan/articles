@@ -45,6 +45,7 @@ object Scraper {
                 .setUserAgent(USER_AGENT)
         )
         val page = context.newPage()
+        page.setDefaultTimeout(60_000.0)
         page.onConsoleMessage { msg -> logger.info("[Console] ${msg.text()}") }
         page.onRequestFailed { req -> logger.error("[Request Failed] ${req.url()}") }
         page.onResponse { res -> logger.info("[Response] ${res.status()} ${res.url()}") }
