@@ -47,6 +47,18 @@ tasks.withType<ShadowJar> {
     }
 }
 
+tasks.register<JavaExec>("playwrightInstallDeps") {
+    group       = "playwright"
+    description = "Install Linux browser dependencies for Playwright"
+
+    // Where the CLI lives
+    mainClass.set("com.microsoft.playwright.CLI")
+    classpath = sourceSets["main"].runtimeClasspath
+
+    // Pass the CLI sub-command
+    args("install-deps")
+}
+
 dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.19.0")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.19.0")
