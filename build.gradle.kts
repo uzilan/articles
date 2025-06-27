@@ -56,7 +56,7 @@ tasks.register<JavaExec>("playwrightInstallDeps") {
     classpath = sourceSets["main"].runtimeClasspath
 
     // Pass the CLI sub-command
-    args("install-deps")
+    args("install", "install-deps")
 }
 
 dependencies {
