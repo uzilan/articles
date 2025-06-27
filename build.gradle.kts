@@ -1,7 +1,7 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 plugins {
-    kotlin("jvm") version "2.1.21"
+    kotlin("jvm") version "2.2.0"
     id("com.github.node-gradle.node") version "7.1.0"
     id("com.gradleup.shadow") version "9.0.0-beta17"
 }
@@ -47,6 +47,18 @@ tasks.withType<ShadowJar> {
     }
 }
 
+tasks.register<JavaExec>("playwrightInstall") {
+    group       = "playwright"
+    description = "Install Linux browser dependencies for Playwright"
+
+    // Where the CLI lives
+    mainClass.set("com.microsoft.playwright.CLI")
+    classpath = sourceSets["main"].runtimeClasspath
+
+    // Pass the CLI sub-command
+    args("install")
+}
+
 tasks.register<JavaExec>("playwrightInstallDeps") {
     group       = "playwright"
     description = "Install Linux browser dependencies for Playwright"
@@ -56,7 +68,7 @@ tasks.register<JavaExec>("playwrightInstallDeps") {
     classpath = sourceSets["main"].runtimeClasspath
 
     // Pass the CLI sub-command
-    args("install", "install-deps")
+    args("install-deps")
 }
 
 dependencies {
