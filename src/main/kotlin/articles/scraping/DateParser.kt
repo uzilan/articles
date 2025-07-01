@@ -1,4 +1,4 @@
-package articles
+package articles.scraping
 
 import java.time.LocalDate
 import java.time.LocalDate.now

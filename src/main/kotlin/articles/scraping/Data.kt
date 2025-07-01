@@ -1,4 +1,4 @@
-package articles
+package articles.scraping
 
 import java.util.UUID
 

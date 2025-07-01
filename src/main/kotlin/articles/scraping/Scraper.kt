@@ -1,12 +1,9 @@
-package articles
+package articles.scraping
 
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.microsoft.playwright.Browser
-import com.microsoft.playwright.BrowserType
 import com.microsoft.playwright.ElementHandle
 import com.microsoft.playwright.Page
-import com.microsoft.playwright.Playwright
-import com.microsoft.playwright.options.LoadState
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.time.LocalDate
@@ -16,42 +13,28 @@ import kotlin.concurrent.thread
 private const val USER_AGENT =
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
 
-object Scraper {
-
+class Scraper(
+    private val browser: Browser
+) {
     private val logger: Logger = LoggerFactory.getLogger(Scraper::class.java)
-
     private val cache = Caffeine.newBuilder()
         .expireAfterWrite(1, TimeUnit.DAYS)
         .maximumSize(1000)
         .build<String, Data>()
-
     private val parsedLinks = mutableMapOf<String, List<ElementHandle>>()
 
-    fun fetch(alias: String): Data {
-        return cache.getIfPresent(alias) ?: helper(alias)
+    fun fetch(alias: String, page: Page): Data {
+        return cache.getIfPresent(alias) ?: helper(alias, page)
     }
 
-    private fun helper(alias: String): Data {
+    private fun helper(alias: String, page: Page): Data {
         val url = "https://medium.com/$alias"
-        val playwright = Playwright.create()
-
-        val browser = playwright.chromium().launch(
-            BrowserType.LaunchOptions().setHeadless(true)
-        )
-
-        val context = browser.newContext(
-            Browser.NewContextOptions()
-                .setViewportSize(1280, 800)
-                .setUserAgent(USER_AGENT)
-        )
-        val page = context.newPage()
         page.setDefaultTimeout(60_000.0)
         page.onConsoleMessage { msg -> logger.info("[Console] ${msg.text()}") }
         page.onRequestFailed { req -> logger.error("[Request Failed] ${req.url()}") }
         page.onResponse { res -> logger.info("[Response] ${res.status()} ${res.url()}") }
         page.navigate(url)
-
-        page.waitForLoadState(LoadState.DOMCONTENTLOADED)
+        page.waitForLoadState(com.microsoft.playwright.options.LoadState.DOMCONTENTLOADED)
 
         val name = page.querySelectorAll("span")[5].innerText()
         val followers = page.querySelectorAll("span")[6].innerText()
@@ -65,13 +48,14 @@ object Scraper {
             scrollToBottom(page, alias)
             val completeData = cache.getIfPresent(alias) ?: throw IllegalStateException("$alias does not exist")
             cache.put(alias, completeData.copy(status = Status.FINISHED))
-            browser.close()
+            page.close()
+            page.context().close()
         }
 
         return data
     }
 
-    private fun articles(alias: String, page: Page): List<Article> {
+    fun articles(alias: String, page: Page): List<Article> {
         val links = page.querySelectorAll("a > h2")
             .mapNotNull { h2 ->
                 h2.evaluateHandle("node => node.parentElement") as? ElementHandle
@@ -93,7 +77,7 @@ object Scraper {
         }
     }
 
-    private fun parseItem(handle: ElementHandle): Article {
+    fun parseItem(handle: ElementHandle): Article {
         val parent = handle.evaluateHandle("node => node.parentElement") as? ElementHandle
         val grandParent = parent?.evaluateHandle("node => node.parentElement") as? ElementHandle
         val greatGrandParent = grandParent?.evaluateHandle("node => node.parentElement") as? ElementHandle
@@ -140,7 +124,7 @@ object Scraper {
         else claps.toInt()
     }
 
-    fun scrollToBottom(page: Page, alias: String, maxAttempts: Int = 100, delayMs: Int = 2000) {
+    private fun scrollToBottom(page: Page, alias: String, maxAttempts: Int = 100, delayMs: Int = 2000) {
         var previousHeight = -1
         var attempts = 0
 

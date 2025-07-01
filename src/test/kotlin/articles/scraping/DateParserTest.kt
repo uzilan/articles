@@ -1,6 +1,6 @@
-package articles
+package articles.scraping
 
-import articles.DateParser.parseDate
+import articles.scraping.DateParser.parseDate
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.time.LocalDate

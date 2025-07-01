@@ -2,8 +2,11 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 plugins {
     kotlin("jvm") version "2.2.0"
+    kotlin("kapt") version "2.2.0"
     id("com.github.node-gradle.node") version "7.1.0"
     id("com.gradleup.shadow") version "9.0.0-beta17"
+
+    application
 }
 
 group = "org.example"
@@ -11,6 +14,7 @@ version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
+    maven("https://maven.reposilite.com/snapshots")
 }
 
 node {
@@ -80,10 +84,25 @@ dependencies {
     implementation("org.slf4j:slf4j-simple:2.0.17")
     implementation("com.github.ben-manes.caffeine:caffeine:3.2.0")
 
+    val openapi = "6.7.0-1"
+    
+    // For Java projects
+    annotationProcessor("io.javalin.community.openapi:openapi-annotation-processor:$openapi")
+    // For Kotlin projects
+    kapt("io.javalin.community.openapi:openapi-annotation-processor:$openapi")
+
+    implementation("io.javalin.community.openapi:javalin-openapi-plugin:$openapi") // for /openapi route with JSON scheme
+    implementation("io.javalin.community.openapi:javalin-swagger-plugin:$openapi") // for Swagger UI
+    implementation("io.javalin.community.openapi:javalin-redoc-plugin:$openapi") // for ReDoc UI
     testImplementation(kotlin("test"))
     testImplementation("org.assertj:assertj-core:3.27.3")
+    testImplementation("io.mockk:mockk:1.13.10")
 }
 
 tasks.test {
     useJUnitPlatform()
+}
+
+application {
+    mainClass.set("articles.Main")
 }
