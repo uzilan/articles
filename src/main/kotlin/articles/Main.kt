@@ -1,8 +1,10 @@
 package articles
 
-import articles.scraping.Data
+import articles.embedding.EmbeddingService
+import articles.embedding.FakeEmbeddingStrategy
 import articles.scraping.Scraper
 import com.fasterxml.jackson.databind.SerializationFeature
+import com.microsoft.playwright.Playwright
 import io.javalin.Javalin
 import io.javalin.http.staticfiles.Location
 import io.javalin.json.JavalinJackson
@@ -14,63 +16,78 @@ import io.javalin.openapi.OpenApiResponse
 import io.javalin.openapi.plugin.OpenApiPlugin
 import io.javalin.openapi.plugin.swagger.SwaggerConfiguration
 import io.javalin.openapi.plugin.swagger.SwaggerPlugin
-import com.microsoft.playwright.BrowserType
-import com.microsoft.playwright.Playwright
 
 object Main {
     private val port = System.getenv("PORT")?.toIntOrNull() ?: 7070
-    private const val USER_AGENT =
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
 
     @JvmStatic
     fun main(args: Array<String>) {
         val playwright = Playwright.create()
-        val browser = playwright.chromium().launch(BrowserType.LaunchOptions().setHeadless(true))
-        val scraper = Scraper(browser)
+        val embeddingStrategy = FakeEmbeddingStrategy()
+        val embeddingService = EmbeddingService(embeddingStrategy)
+        val scraper = Scraper(embeddingService)
 
-        Runtime.getRuntime().addShutdownHook(Thread {
-            browser.close()
-        })
-
-        Javalin.create { config ->
-            config.staticFiles.add(
-                directory = "/public",
-                location = Location.CLASSPATH,
-            )
-            config.bundledPlugins.enableCors { cors ->
-                cors.addRule {
-                    it.anyHost()
+        Runtime.getRuntime().addShutdownHook(
+            Thread {
+                try {
+                    playwright.close()
+                } catch (e: Exception) {
+                    println("Error during shutdown: ${e.message}")
                 }
-            }
-            config.jsonMapper(JavalinJackson().updateMapper { mapper ->
-                mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-            })
-            config.registerPlugin(OpenApiPlugin { openApiConfig ->
-                openApiConfig
-                    .withDocumentationPath("/openapi")
-                    .withDefinitionConfiguration { _, openApiDefinition ->
-                        openApiDefinition.withInfo { info ->
-                            info.title = "Medium Scraper API"
-                            info.description = "API for scraping Medium user/publication data."
-                        }
+            },
+        )
+
+        Javalin
+            .create { config ->
+                config.staticFiles.add(
+                    directory = "/public",
+                    location = Location.CLASSPATH,
+                )
+                config.bundledPlugins.enableCors { cors ->
+                    cors.addRule {
+                        it.anyHost()
                     }
-            })
-            config.registerPlugin(SwaggerPlugin { SwaggerConfiguration() })
-        }
-            .get("/scrap/{alias}") { ctx ->
+                }
+                config.jsonMapper(
+                    JavalinJackson().updateMapper { mapper ->
+                        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+                    },
+                )
+                config.registerPlugin(
+                    OpenApiPlugin { openApiConfig ->
+                        openApiConfig
+                            .withDocumentationPath("/openapi")
+                            .withDefinitionConfiguration { _, openApiDefinition ->
+                                openApiDefinition.withInfo { info ->
+                                    info.title = "Medium Scraper API"
+                                    info.description = "API for scraping Medium user/publication data."
+                                }
+                            }
+                    },
+                )
+                config.registerPlugin(SwaggerPlugin { SwaggerConfiguration() })
+            }.get("/health") { ctx ->
+                ctx.json(mapOf("status" to "ok", "browser" to "available"))
+            }.get("/status/{alias}") { ctx ->
+                val alias = ctx.pathParam("alias")
+                val aliasWithAt = if (alias.startsWith("@")) alias else "@$alias"
+                val isComplete = scraper.isScrapingComplete(aliasWithAt)
+                ctx.json(mapOf("alias" to aliasWithAt, "complete" to isComplete))
+            }.get("/scrap/{alias}") { ctx ->
                 val alias = ctx.pathParam("alias")
                 val aliasWithAt1 = if (alias.startsWith("@")) alias else "@$alias"
                 val aliasWithAt = aliasWithAt1
-                val context = browser.newContext(
-                    com.microsoft.playwright.Browser.NewContextOptions()
-                        .setViewportSize(1280, 800)
-                        .setUserAgent(USER_AGENT)
-                )
-                val page = context.newPage()
-                val scrap = scraper.fetch(aliasWithAt, page)
-                ctx.json(scrap)
-            }
-            .start(port)
+
+                try {
+                    // Let the scraper create its own browser, context, and page
+                    val data = scraper.fetch(aliasWithAt)
+                    ctx.json(data)
+                } catch (e: Exception) {
+                    println("Error during scraping: ${e.message}")
+                    e.printStackTrace()
+                    ctx.status(500).json(mapOf("error" to "Failed to scrape data: ${e.message}"))
+                }
+            }.start(port)
     }
 
     @OpenApi(
@@ -78,7 +95,7 @@ object Main {
         path = "/scrap/{alias}",
         methods = [HttpMethod.GET],
         pathParams = [OpenApiParam(name = "alias", description = "Medium user or publication alias")],
-        responses = [OpenApiResponse("200", [OpenApiContent(from = articles.scraping.Data::class)])]
+        responses = [OpenApiResponse("200", [OpenApiContent(from = articles.scraping.Data::class)])],
     )
     fun scrapHandler(ctx: io.javalin.http.Context) { /* not used, kept for OpenAPI */ }
 }

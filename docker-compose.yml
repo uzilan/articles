@@ -1,0 +1,32 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "7070:7070"
+    depends_on:
+      - llm
+      - model-puller
+    environment:
+      LLM_API_URL: "http://llm:11434"
+
+  llm:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+  model-puller:
+    image: curlimages/curl:latest
+    depends_on:
+      - llm
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      "until curl -s http://llm:11434/; do echo waiting for ollama; sleep 2; done;
+      curl -X POST http://llm:11434/api/pull -d '{\"name\": \"tinyllama\"}';
+      echo model pull requested; sleep 5"
+
+volumes:
+  ollama_data:

@@ -1,9 +1,8 @@
 package articles.scraping
 
-import java.util.UUID
-
 enum class Status {
-    ONGOING, FINISHED
+    ONGOING,
+    FINISHED,
 }
 
 data class Data(

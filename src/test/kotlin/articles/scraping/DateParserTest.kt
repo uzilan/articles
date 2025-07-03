@@ -8,7 +8,6 @@ import java.time.LocalDate.now
 import java.time.Month
 
 class DateParserTest {
-
     @Test
     fun `five days ago`() {
         val text = "5d ago"

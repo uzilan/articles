@@ -6,7 +6,6 @@ import java.time.Month
 import java.time.temporal.ChronoUnit
 
 object DateParser {
-
     fun parseDate(date: String): LocalDate {
         return when {
             date.contains("ago") -> ago(date)
@@ -38,27 +37,29 @@ object DateParser {
         val ago = date.split(" ").first()
         val letter = ago.takeLast(1)
         val count = ago.dropLast(1).toLong()
-        val unit = when (letter) {
-            "d" -> ChronoUnit.DAYS
-            "w" -> ChronoUnit.WEEKS
-            else -> ChronoUnit.MONTHS
-        }
+        val unit =
+            when (letter) {
+                "d" -> ChronoUnit.DAYS
+                "w" -> ChronoUnit.WEEKS
+                else -> ChronoUnit.MONTHS
+            }
 
         return now().minus(count, unit)
     }
 
-    private fun month(mon: String): Month = when (mon) {
-        "Jan" -> Month.JANUARY
-        "Feb" -> Month.FEBRUARY
-        "Mar" -> Month.MARCH
-        "Apr" -> Month.APRIL
-        "May" -> Month.MAY
-        "Jun" -> Month.JUNE
-        "Jul" -> Month.JULY
-        "Aug" -> Month.AUGUST
-        "Sep" -> Month.SEPTEMBER
-        "Oct" -> Month.OCTOBER
-        "Nov" -> Month.NOVEMBER
-        else -> Month.DECEMBER
-    }
+    private fun month(mon: String): Month =
+        when (mon) {
+            "Jan" -> Month.JANUARY
+            "Feb" -> Month.FEBRUARY
+            "Mar" -> Month.MARCH
+            "Apr" -> Month.APRIL
+            "May" -> Month.MAY
+            "Jun" -> Month.JUNE
+            "Jul" -> Month.JULY
+            "Aug" -> Month.AUGUST
+            "Sep" -> Month.SEPTEMBER
+            "Oct" -> Month.OCTOBER
+            "Nov" -> Month.NOVEMBER
+            else -> Month.DECEMBER
+        }
 }
